@@ -1,0 +1,143 @@
+#ansible-playbook -i inventory.ini playbook.yml
+
+- name: Installation complète d'un serveur LAMP
+  hosts: webservers
+  become: true
+
+  #Variables définies dans vars.yml pour une meilleure organisation et réutilisabilité
+  vars_files:
+    - vars.yml
+
+  tasks:
+    #Ajout du dépôt PHP Ondřej pour accéder à la version choisie de PHP
+    - name: Ajouter le dépôt PHP Ondřej
+      apt_repository:
+        repo: ppa:ondrej/php
+        state: present
+
+    #Mise à jour des paquets
+    - name: Mettre à jour les paquets
+      apt:
+        update_cache: yes
+
+    #Installation des paquets pour le serveur web
+    - name: Installer les paquets pour le serveur web
+      apt:
+        name: "{{ web }}"
+        state: present
+
+    - name: Installer les paquets pour la base de données mysql
+      apt:
+        name: "{{ mysql }}"
+        state: present
+      when: database == 'mysql'
+
+    - name: Installer les paquets pour la base de données mariadb
+      apt:
+        name: "{{ mariadb }}"
+        state: present
+      when: database == 'mariadb'
+
+    #Installer et activer le module PHP pour Apache
+    - name: Désactiver toutes les versions PHP existantes
+      shell: a2dismod php*
+      ignore_errors: true
+
+    - name: Activer PHP {{ php_version }}
+      command: a2enmod php{{ php_version }}
+
+    #Recharger Apache après activation du module PHP
+    - name: Recharger Apache après activation PHP
+      service:
+        name: apache2
+        state: reloaded
+
+    #S'assurer que les services sont démarrés
+    - name: S'assurer qu'Apache est démarré
+      service:
+        name: apache2
+        state: started
+        enabled: true
+
+    - name: S'assurer que MySQL est démarré
+      service:
+        name: mysql
+        state: started
+        enabled: true
+      when: database == 'mysql'
+
+    - name: S'assurer que MariaDB est démarrée
+      service:
+        name: mariadb
+        state: started
+        enabled: true
+      when: database == 'mariadb'
+
+    #Préconfigurer phpMyAdmin pour Apache et dbconfig-common
+    - name: Préconfigurer phpMyAdmin - serveur web
+      debconf:
+        name: phpmyadmin
+        question: phpmyadmin/reconfigure-webserver
+        value: apache2
+        vtype: multiselect
+
+    - name: Préconfigurer phpMyAdmin - dbconfig-common
+      debconf:
+        name: phpmyadmin/dbconfig-install
+        question: phpmyadmin/dbconfig-install
+        value: true
+        vtype: boolean
+
+    #Installer phpMyAdmin
+    - name: Installer phpMyAdmin
+      apt:
+        name: "{{ phpmyadmin }}"
+        state: present
+
+    #Créer un utilisateur DB admin avec tous les droits
+    - name: Créer un utilisateur DB admin avec tous les droits
+      community.mysql.mysql_user:
+        name: "{{ db_user }}"
+        password: "{{ db_password }}"
+        host: "%"
+        priv: "*.*:ALL,GRANT"
+        state: present
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+
+    #Créer le dossier du site et déployer la page d'accueil
+    - name: Créer le dossier du site
+      file:
+        path: "{{ doc_root }}"
+        state: directory
+        owner: www-data
+        group: www-data
+        mode: '0755'
+
+    - name: Copier la page index.php
+      copy:
+        src: files/index.php
+        dest: "{{ doc_root }}/index.php"
+        owner: www-data
+        group: www-data
+        mode: '0644'
+
+    #Déployer le VirtualHost pour le site
+    - name: Déployer le VirtualHost
+      template:
+        src: templates/{{ vhost }}
+        dest: "/etc/apache2/sites-available/{{ fqdn }}.conf"
+
+    - name: Activer le site {{ fqdn }}
+      command: "a2ensite {{ fqdn }}.conf"
+
+    - name: Désactiver le site par défaut
+      command: a2dissite 000-default.conf
+
+    #Vérifier et recharger Apache
+    - name: Vérifier la configuration Apache
+      command: apache2ctl configtest
+
+    - name: Reload Apache
+      service:
+        name: apache2
+        state: reloaded
