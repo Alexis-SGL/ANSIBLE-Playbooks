@@ -1,0 +1,43 @@
+#Informations du switch
+nom_switch: "MON-SWITCH-01"
+contact_switch: "admin@mon-domaine.fr"
+emplacement_switch: "Salle serveur - Bâtiment A"
+passerelle_switch: "IP_PASSERELLE"
+ 
+#RADIUS / NTP
+radius_server_1: "IP_RADIUS_1"
+radius_server_2: "IP_RADIUS_2"
+radius_key_1: "ma_cle_radius_1"
+radius_key_2: "ma_cle_radius_2"
+ 
+#Syslog
+syslog_server: "IP_SYSLOG"
+ 
+#SNMP
+snmp_community: "mon-community"
+ 
+#Spanning-tree
+spanning_tree_name: "MON-SITE"
+ 
+# VLANs
+vlan_list:
+  - { id: 1,   nom: "DEFAULT_VLAN", adresse_ip: null, masque_ip: null}
+  - { id: 10,  nom: "CLIENTS", adresse_ip: null, masque_ip: null }
+  - { id: 100, nom: "MGMT", adresse_ip: null, masque_ip: null }
+ 
+#VLANs associés aux ports ACCESS
+vlan_port:
+  - { id: 10, etat: "CLIENTS" }
+ 
+# Ports
+ports:
+  - { id: "1",  description: "PORT-01", etat: "CLIENTS" }
+  - { id: "2",  description: "PORT-02", etat: "CLIENTS" }
+  - { id: "3",  description: "PORT-03", etat: "CLIENTS" }
+  - { id: "4",  description: "PORT-04", etat: "CLIENTS" }
+  - { id: "5",  description: "PORT-05", etat: "CLIENTS" }
+  - { id: "6",  description: "PORT-06", etat: "CLIENTS" }
+  - { id: "7",  description: "PORT-07", etat: "CLIENTS" }
+  - { id: "8",  description: "PORT-08", etat: "CLIENTS" }
+  - { id: "9",  description: "PORT-09", etat: "CLIENTS" }
+  - { id: "10", description: "PORT-10", etat: "UPLINK" }
