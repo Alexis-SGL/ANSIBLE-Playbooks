@@ -1,0 +1,14 @@
+<VirtualHost *:80>
+    ServerName {{ fqdn }}
+    ServerAlias www.{{ fqdn }}
+
+    DocumentRoot {{ doc_root }}
+
+    <Directory {{ doc_root }}>
+        AllowOverride All
+        Require all granted
+    </Directory>
+
+    ErrorLog ${APACHE_LOG_DIR}/{{ fqdn }}-error.log
+    CustomLog ${APACHE_LOG_DIR}/{{ fqdn }}-access.log combined
+</VirtualHost>
