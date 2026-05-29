@@ -1,0 +1,104 @@
+# ansible-playbook -i inventory.ini playbook.yml
+---
+- name: Configuration Aruba OCSS
+  hosts: aruba_ocss
+  gather_facts: no
+
+  tasks:
+  - name: Configuration globale
+    ansible.netcommon.cli_command:
+      command: "{{ item }}"
+    loop:
+      - "configure terminal"
+      - "hostname {{ nom_switch }}"
+      - "time timezone 60"
+      - "timesync ntp"
+      - "ntp server {{ radius_server_1 }}"
+      - "ntp server {{ radius_server_2 }}"
+      - "ntp enable"
+      - "radius-server host {{ radius_server_2 }} key {{ radius_key_2 }}"
+      - "radius-server host {{ radius_server_1 }} key {{ radius_key_1 }}"
+      - "logging {{ syslog_server }}"
+      - "spanning-tree"
+      - "spanning-tree config-name {{ spanning_tree_name }}"
+      - "spanning-tree config-revision 1"
+      - "snmp-server location {{ emplacement_switch }}"
+      - "snmp-server contact {{ contact_switch }}"
+      - "snmp-server community {{ snmp_community }} unrestricted"
+      - "ip default-gateway {{ passerelle_switch }}"
+      - "aaa authentication port-access eap-radius"
+      - "aaa authentication mac-based chap-radius"
+
+  #Configuration des VLANs selon le tableau dans le fichier vars
+  - name: Configuration VLANs
+    ansible.netcommon.cli_command:
+      command: |
+        configure terminal
+        vlan {{ item.id }}
+        {% if item.nom %}
+        name {{ item.nom }}
+        {% endif %}
+        exit
+        interface vlan {{ item.id }}
+        {% if item.adresse_ip %}
+          {% if item.masque_ip %}
+          ip address {{ item.adresse_ip }} {{ item.masque_ip }}
+          {% else %}
+          no ip address
+          {% endif %}
+        {% endif %}
+        exit
+        exit
+    loop: "{{ vlan_list }}"
+
+  #Configuration de la description des ports clients
+  - name: Configuration ports CLIENTS - Description
+    ansible.netcommon.cli_command:
+      command: |
+        configure terminal
+        interface {{ item.id }}
+        name {{ item.description }}
+        exit
+        exit
+    loop: "{{ ports }}"
+    when: item.etat != 'UPLINK'
+    tags: "3"
+
+  #Configuration des VLANs untagged sur les ports ACCESS
+  - name: Configuration ports CLIENTS - VLAN untagged
+    ansible.netcommon.cli_command:
+      command: |
+        configure terminal
+        vlan {{ item.id }}
+        untagged {{ ports | selectattr('etat', 'equalto', item.etat) | map(attribute='id') | join(',') }}
+        exit
+        exit
+    loop: "{{ vlan_port }}"
+    when: ports | selectattr('etat', 'equalto', item.etat) | list | length > 0
+
+  #Configuration de la description du port UPLINK
+  - name: Configuration ports UPLINK - Description
+    ansible.netcommon.cli_command:
+      command: |
+        configure terminal
+        interface {{ (ports | selectattr('etat', 'equalto', 'UPLINK') | first).id }}
+        name {{ (ports | selectattr('etat', 'equalto', 'UPLINK') | first).description }}
+        exit
+        exit
+    loop: "{{ vlan_list }}"
+
+  #Configuration des VLANs tagged sur le port UPLINK
+  - name: Configuration ports UPLINK - Tagged VLAN
+    ansible.netcommon.cli_command:
+      command: |
+        configure terminal
+        vlan {{ item.id }}
+        tagged {{ (ports | selectattr('etat','equalto','UPLINK') | first).id }}
+        exit
+        exit
+    loop: "{{ vlan_list }}"
+
+  #Sauvegarde de la configuration
+  - name: Sauvegarde de la configuration
+    ansible.netcommon.cli_command:
+      command: "write memory"
