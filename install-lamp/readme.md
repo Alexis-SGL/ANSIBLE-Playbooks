@@ -1,10 +1,10 @@
-> ####Playbook Ansible — install_LAMP
+> #### Playbook Ansible — install_LAMP
 
 ---
 
-#Déploiement automatisé d'un serveur LAMP
+# Déploiement automatisé d'un serveur LAMP
 
-##Objectif
+## Objectif
 
 L'objectif de ce playbook est de déployer un **serveur LAMP** (Linux, Apache, MySQL/MariaDB, PHP) de manière automatisée à l'aide d'Ansible sur une machine Ubuntu Server.
 
@@ -14,31 +14,31 @@ Ce playbook est conçu pour être **générique et réutilisable** : il suffit d
 
 ---
 
-##Prérequis
+## Prérequis
 
 Avant de lancer le playbook, les éléments suivants doivent être en place.
 
-###Machine de contrôle Ansible
+### Machine de contrôle Ansible
 - Système Linux
 - Ansible installé (`ansible-galaxy collection install community.mysql`)
 - Accès réseau vers la machine serveur
 - Clé SSH configurée
 
-###Machine serveur (cible)
+### Machine serveur (cible)
 - Ubuntu Server
 - Accès SSH actif
 - Python 3 installé
 
 ---
 
-##Connexion SSH au serveur distant
+## Connexion SSH au serveur distant
 
 Ansible communique avec les machines distantes via **SSH**.
 Afin de simplifier l'administration et d'éviter l'utilisation de mots de passe,
 une authentification **par clé SSH** a été mise en place pour le compte `root`.
 
 
-###Génération de la clé SSH sur la machine de contrôle
+### Génération de la clé SSH sur la machine de contrôle
 
 Sur la machine de contrôle Ansible, une clé SSH dédiée est générée :
 
@@ -50,7 +50,7 @@ Cette commande génère :
 - une clé privée : `~/.ssh/key_ansible`
 - une clé publique : `~/.ssh/key_ansible.pub`
 
-###Déploiement de la clé SSH sur le serveur cible
+### Déploiement de la clé SSH sur le serveur cible
 
 
 
@@ -380,7 +380,7 @@ Le playbook automatise :
 
 ---
 
-##Lancement du playbook
+## Lancement du playbook
 
 ```bash
 ansible-playbook -i inventory.ini install_LAMP.yml
@@ -394,6 +394,6 @@ http://www.mon-domaine.fr
 
 ---
 
-##Conclusion
+## Conclusion
 
 Ce playbook permet de déployer un serveur LAMP complet de manière reproductible et cohérente sur n'importe quel serveur Ubuntu. La configuration est entièrement portée par deux fichiers (`inventory.ini` et `vars.yml`), ce qui rend le playbook réutilisable sans aucune modification du code. Il suffit de renseigner l'IP du serveur, le `fqdn` souhaité et les identifiants base de données pour cibler un nouvel environnement.
