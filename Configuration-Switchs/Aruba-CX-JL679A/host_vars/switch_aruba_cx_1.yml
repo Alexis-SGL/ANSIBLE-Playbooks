@@ -5,7 +5,7 @@ emplacement_switch: "Salle serveur - Bâtiment A"
  
 # RADIUS
 radius_server_1: "IP_RADIUS_1"
-radius_server_2: "IP_RADIUS_1"
+radius_server_2: "IP_RADIUS_2"
 radius_key_1: "ma_cle_radius_1"
 radius_key_2: "ma_cle_radius_2"
 radius_timeout: 5
