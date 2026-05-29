@@ -28,10 +28,10 @@
         - radius server-group {{ radius_group }}
         - auth-method pap
         - enable
-        - port-access role VOIX
+        - port-access role {{ role_authentifie }}
         - vlan trunk native 1
         - vlan trunk allowed all
-        - port-access role NOAUTH
+        - port-access role {{ role_non_authentifie }}
         - vlan access {{ (vlans | selectattr('nom', 'equalto', 'NOAUTH') | first).id }}
 
   #Configuration des VLANs selon le tableau dans le fichier vars
