@@ -1,0 +1,77 @@
+# ansible-playbook -i inventory.ini playbook.yml
+---
+- name: Aruba CX - Configuration
+  hosts: aruba_cx
+  gather_facts: no
+  connection: network_cli
+  serial: 1
+
+  tasks:
+  - name: Configuration globale
+    arubanetworks.aoscx.aoscx_config:
+      lines:
+        - hostname {{ nom_switch | default(inventory_hostname) }}
+        - snmp-server contact {{ contact_switch | default('INCONNU') }} location {{ emplacement_switch | default('INCONNU') }}
+        - radius-server host {{ radius_server_1 }} key plaintext {{ radius_key_1 }}
+        - radius-server host {{ radius_server_2 }} key plaintext {{ radius_key_2 }}
+        - radius-server timeout {{ radius_timeout | default(5) }}
+        - radius-server retransmit {{ radius_retransmit | default(3) }}
+        - aaa group server radius {{ radius_group }}
+        - server {{ radius_server_1 }}
+        - server {{ radius_server_2 }}
+        - aaa authentication login default local
+        - aaa authentication port-access dot1x authenticator
+        - radius server-group {{ radius_group }}
+        - enable
+        - aaa authentication port-access mac-auth
+        - addr-format multi-dash
+        - radius server-group {{ radius_group }}
+        - auth-method pap
+        - enable
+        - port-access role VOIX
+        - vlan trunk native 1
+        - vlan trunk allowed all
+        - port-access role NOAUTH
+        - vlan access {{ (vlans | selectattr('nom', 'equalto', 'NOAUTH') | first).id }}
+
+  #Configuration des VLANs selon le tableau dans le fichier vars
+  - name: Configuration VLANs
+    arubanetworks.aoscx.aoscx_config:
+      parents:
+        - vlan {{ item.id }}
+      lines:
+        - no shutdown
+    loop: "{{ vlans }}"
+
+  #Configuration des ports pour les clients selon le tableau dans le fichier vars
+  - name: Configuration ports CLIENTS
+    arubanetworks.aoscx.aoscx_config:
+      parents:
+        - interface {{ item.id }}
+      lines:
+        - description {{ item.description }}
+        - no shutdown
+        - vlan access {{ (vlans | selectattr('nom', 'equalto', 'CLIENTS') | first).id }}
+        - spanning-tree port-type admin-edge
+        - spanning-tree bpdu-protection
+    loop: "{{ ports }}"
+    when: item.etat == "CLIENTS"
+
+  #Configuration des ports pour UPLINK selon le tableau dans le fichier vars
+  - name: Configuration ports UPLINK
+    arubanetworks.aoscx.aoscx_config:
+      parents:
+        - interface {{ item.id }}
+      lines:
+        - description {{ item.description }}
+        - no shutdown
+        - vlan trunk native 1
+        - vlan trunk allowed all
+        - spanning-tree port-type admin-edge
+    loop: "{{ ports }}"
+    when: item.etat == "UPLINK"
+
+  #Sauvegarde de la configuration
+  - name: Sauvegarde de la configuration
+    ansible.netcommon.cli_command:
+      command: "write memory"
